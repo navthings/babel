@@ -1,37 +1,13 @@
 # babel
 
-in every page that could ever be written, find gold.
+in every page that could ever be written, find gold
 
-my own version of the library of babel, plus a miner that digs through it looking for real english.
+https://navthings.github.io/babel
 
-live: https://navthings.github.io/babel
+my own library of babel (borges, and jonathan basile's [libraryofbabel.info](https://libraryofbabel.info)). every page is 3200 characters from a-z, space, comma and full stop, so 29^3200 pages. none are stored, a page's address is the page run through a reversible shuffle (affine map mod 29^3200, flip the digits, another affine map). so search is instant, it just runs the shuffle backwards.
 
-## what it is
+- mine: web workers read random pages and keep the longest run of real words. ~60k pages/s per thread on my mac
+- search: type something, get its page and address, or send it to basile's search
+- browse: paste an address, prev, next, random
 
-borges wrote a story about a library that has every possible book in it. every page is 40 lines of 80 characters, 26 letters plus space, comma and full stop. so it has every book ever written, every book that will be written, and an absurd amount of pure garbage.
-
-jonathan basile actually built it at [libraryofbabel.info](https://libraryofbabel.info). this is me building my own from scratch to see how it works.
-
-there are 29^3200 pages, around 4.7 × 10^4679. you obviously cant store that, so nothing is stored. every page has a number, and a reversible shuffle turns the number into the page text and the text back into the number. thats why search is instant: it doesnt look for your text, it just runs the shuffle backwards and tells you where it lives.
-
-the shuffle is an affine map mod 29^3200, then reversing the digits, then another affine map. inverses use hensel lifting since the modulus is a prime power. all of it is plain js BigInt.
-
-## the three tabs
-
-**mine**: web workers read random pages and keep the longest unbroken run of real words (40k common words from SCOWL). records so far land around 10 to 20 characters, the odds fall off a cliff after that. about 60k pages a second per thread on a laptop.
-
-**search**: type anything, get its exact page and address. "alone" pads it with spaces, "in noise" hides it in random letters. theres also a button that sends it to basile's search so you can see where it lives in the original.
-
-**browse**: paste an address, step to the next or previous page, or jump to a random one.
-
-## files
-
-- `src.html` the actual page
-- `words.txt` the word list
-- `build.py` inlines the words into src.html and writes `index.html`
-
-edit src.html then run `python3 build.py`.
-
-## why
-
-i wanted to see how the original works, and whether brute force could find anything readable. it cant really, which is kind of the point.
+edit `src.html`, then `python3 build.py` to inline `words.txt` (40k words from SCOWL) into `index.html`
