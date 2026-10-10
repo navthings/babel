@@ -3,127 +3,128 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="every page that could ever be written, and a miner that digs for real english in it">
+<meta name="description" content="in every page that could ever be written, find gold">
 <title>Babel Miner</title>
 <style>
-/* old academic homepage: default serif, blue links, hr between parts, deliberately light only */
+/* a quiet researcher homepage: book serif, soft blue links, hairlines, light only on purpose */
 :root {
   --bg: #ffffff;
-  --ink: #000000;
-  --link: #0000ee;
-  --visited: #551a8b;
-  --grey: #666666;
-  --noise: #a8a8a8;
-  --rule: #999999;
+  --ink: #1b1b1b;
+  --link: #2a56b8;
+  --grey: #6f6f6f;
+  --noise: #b3b3b3;
+  --rule: #e4e4e4;
+  --f-text: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  --f-mono: "SF Mono", ui-monospace, Menlo, Consolas, "Courier New", monospace;
   color-scheme: light;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 "Times New Roman", Times, serif; }
-.wrap { max-width: 760px; padding: 16px 20px 48px; }
-h1 { font-size: 2em; margin: .4em 0 .2em; }
-h2 { font-size: 1.2em; margin: 1.2em 0 .4em; }
-p { margin: .6em 0; }
-hr { border: 0; border-top: 1px solid var(--rule); margin: 1em 0; }
-a, .link { color: var(--link); text-decoration: underline; cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
-a:visited { color: var(--visited); }
-.link:focus-visible, a:focus-visible { outline: 1px dotted var(--ink); outline-offset: 1px; }
-.link.on, nav .link[aria-selected="true"] { color: var(--ink); text-decoration: none; font-weight: bold; cursor: default; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 var(--f-text); }
+.wrap { max-width: 720px; margin: 0 auto; padding: 48px 20px 64px; }
+h1 { font-size: 26px; font-weight: 600; margin: 0; }
+.tag { color: var(--grey); margin: 2px 0 14px; }
+h2 { font-size: 18px; font-weight: 600; margin: 34px 0 8px; }
+p { margin: 10px 0; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 22px 0; }
+a, .link { color: var(--link); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--link) 35%, transparent); cursor: pointer; background: none; border: 0; padding: 0; font: inherit; transition: text-decoration-color .15s; }
+a:hover, .link:hover { text-decoration-color: var(--link); }
+.link:focus-visible, a:focus-visible { outline: 2px solid color-mix(in srgb, var(--link) 40%, transparent); outline-offset: 2px; border-radius: 2px; }
+.link.on, nav .link[aria-selected="true"] { color: var(--ink); text-decoration: none; font-weight: 600; cursor: default; }
+nav { display: flex; gap: 18px; }
 .grey { color: var(--grey); }
-tt, code, .mono { font-family: "Courier New", Courier, monospace; }
-.found { font-family: "Courier New", Courier, monospace; font-weight: bold; font-size: 1.15em; overflow-wrap: anywhere; }
-.pagewrap { container-type: inline-size; margin: .8em 0; }
-.page { margin: 0; font-family: "Courier New", Courier, monospace; font-size: min(12px, calc(100cqi / 48.2)); line-height: 1.35; color: var(--noise); white-space: pre; overflow: hidden; border: 1px solid var(--rule); padding: 6px; }
-.page b, .page mark { background: none; color: var(--ink); font-weight: bold; }
-.under { font-size: 14px; margin-top: 4px; overflow-wrap: anywhere; }
-.chart { width: 100%; height: 70px; display: block; overflow: visible; border-left: 1px solid var(--ink); }
-.chart .ax { stroke: var(--ink); }
+.small { font-size: 15px; }
+.found { font-family: var(--f-mono); font-size: .9em; overflow-wrap: anywhere; }
+.controls { display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: baseline; }
+.pagewrap { container-type: inline-size; margin: 16px 0 6px; }
+.page { margin: 0; font-family: var(--f-mono); font-size: min(11.5px, calc(100cqi / 49)); line-height: 1.5; color: var(--noise); white-space: pre; overflow: hidden; padding: 12px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.page b, .page mark { background: none; color: var(--ink); font-weight: 600; }
+.under { font-size: 15px; margin-top: 6px; overflow-wrap: anywhere; }
+.chart { width: 100%; height: 70px; display: block; overflow: visible; margin-bottom: 22px; }
+.chart .ax { stroke: var(--rule); }
 .chart .ln { fill: none; stroke: var(--ink); stroke-width: 1; }
-.chart text { fill: var(--ink); font: 11px "Times New Roman", Times, serif; }
-table { border-collapse: collapse; width: 100%; font-size: 15px; }
-th, td { text-align: left; padding: 2px 10px 2px 0; vertical-align: top; }
-th { border-bottom: 1px solid var(--ink); font-weight: bold; }
-td.t { font-family: "Courier New", Courier, monospace; overflow-wrap: anywhere; }
-td.r, th.r { text-align: right; padding-right: 0; white-space: nowrap; }
-textarea, input[type=text] { width: 100%; font: 14px "Courier New", Courier, monospace; color: var(--ink); background: #fff; border: 1px solid #767676; padding: 4px; }
-button.btn { font: 14px system-ui, sans-serif; padding: 1px 8px; }
-.addr { font-family: "Courier New", Courier, monospace; font-size: 13px; }
-footer { font-size: 14px; color: var(--grey); }
+.chart text { fill: var(--grey); font: 11px var(--f-text); }
+table { border-collapse: collapse; width: 100%; font-size: 16px; }
+th, td { text-align: left; padding: 5px 12px 5px 0; vertical-align: baseline; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; font-size: 14px; color: var(--grey); }
+td.t { font-family: var(--f-mono); font-size: 14px; overflow-wrap: anywhere; }
+td.r, th.r { text-align: right; padding-right: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
+textarea, input[type=text] { width: 100%; font: 14px/1.5 var(--f-mono); color: var(--ink); background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 8px 10px; outline: none; resize: vertical; }
+textarea:focus, input[type=text]:focus { border-color: var(--link); }
+.addr { font-family: var(--f-mono); font-size: 13px; }
+footer { font-size: 15px; color: var(--grey); }
+@media (max-width: 520px) { body { font-size: 16px; } .wrap { padding-top: 28px; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 
 </head>
 <body>
 <div class="wrap">
-  <h1>Babel</h1>
-  <p>Every page of text that could ever be written, each with an address. Built after Borges' <i>The Library of Babel</i> (1941) and Jonathan Basile's <a href="https://libraryofbabel.info" target="_blank" rel="noopener">libraryofbabel.info</a>.</p>
+  <h1>babel</h1>
+  <p class="tag">in every page that could ever be written, find gold</p>
   <nav role="tablist" id="tabs">
-    [ <button class="link" role="tab" id="t-mine" aria-selected="true" aria-controls="p-mine">mine</button> |
-    <button class="link" role="tab" id="t-search" aria-selected="false" aria-controls="p-search">search</button> |
-    <button class="link" role="tab" id="t-browse" aria-selected="false" aria-controls="p-browse">browse</button> ]
+    <button class="link" role="tab" id="t-mine" aria-selected="true" aria-controls="p-mine">mine</button>
+    <button class="link" role="tab" id="t-search" aria-selected="false" aria-controls="p-search">search</button>
+    <button class="link" role="tab" id="t-browse" aria-selected="false" aria-controls="p-browse">browse</button>
   </nav>
   <hr>
 
   <section role="tabpanel" id="p-mine" aria-labelledby="t-mine">
-    <p>The miner reads random pages and keeps the longest unbroken run of real English words it finds (dictionary of 40,465 common words). No shortcuts, just luck and pages per second.</p>
-    <p>Longest so far: <span class="found" id="bestText">nothing yet</span><br><span class="grey" id="bestNote">Press start. The first real word usually turns up within a second.</span></p>
-    <p>
-      <button class="btn" id="go">start</button>
-      <button class="btn" id="reset">reset</button>
-      &nbsp; threads: <b id="thr">2</b> (<button class="link" id="thrDown">less</button>, <button class="link" id="thrUp">more</button>)
+    <p>best: <span class="found" id="bestText">nothing yet</span> <span class="grey" id="bestNote"></span></p>
+    <p class="controls">
+      <button class="link" id="go">start</button>
+      <button class="link" id="reset">reset</button>
+      <span class="grey">threads <span style="color:var(--ink)" id="thr">2</span> (<button class="link" id="thrDown">fewer</button>, <button class="link" id="thrUp">more</button>)</span>
     </p>
-    <p id="statline">0 pages read.</p>
+    <p class="grey" id="statline"></p>
     <div class="pagewrap">
       <pre class="page" id="livePage"></pre>
-      <div class="under grey"><span id="liveMeta">A random page.</span> <span id="liveRun"></span></div>
+      <div class="under grey"><span id="liveMeta"></span><span id="liveRun"></span></div>
     </div>
-    <h2>Record over time</h2>
+    <h2>records</h2>
     <svg class="chart" id="chart" viewBox="0 0 720 70" preserveAspectRatio="none" role="img" aria-label="record length against pages read"></svg>
-    <p class="grey" style="font-size:14px">Longest run (characters) against pages read, log scale.</p>
-    <h2>Your records</h2>
     <div id="mine"></div>
     <div id="globalBox" hidden>
-      <h2>Everyone's best</h2>
+      <h2>everyone</h2>
       <div id="global"></div>
     </div>
   </section>
 
   <section role="tabpanel" id="p-search" aria-labelledby="t-search" hidden>
-    <p>Type anything. It is already written on some page; this works out which one.</p>
     <textarea id="q" rows="3" maxlength="3200" placeholder="type something">hello from the library</textarea>
-    <p>
-      <button class="btn" id="find">find it</button>
-      &nbsp; surroundings:
-      <button class="link on" id="mAlone" aria-pressed="true">alone on the page</button> |
-      <button class="link" id="mNoise" aria-pressed="false">among noise</button>
+    <p class="controls">
+      <button class="link" id="find">find it</button>
+      <button class="link" id="basile">find it in basile's library</button>
+      <span class="grey"><button class="link on" id="mAlone" aria-pressed="true">alone</button> / <button class="link" id="mNoise" aria-pressed="false">in noise</button></span>
     </p>
-    <p class="grey" id="qNote">Letters, spaces, commas and full stops only. Anything else is dropped.</p>
+    <p class="grey small" id="qNote"></p>
+    <form id="basileForm" action="https://libraryofbabel.info/search.cgi" method="post" target="_blank" hidden>
+      <input type="hidden" name="find" id="basileFind"><input type="hidden" name="method" value="x"><input type="hidden" name="btnSubmit" value="Search">
+    </form>
     <div class="pagewrap" id="sWrap" hidden>
       <pre class="page" id="sPage"></pre>
-      <div class="under"><span class="addr" id="sAddr"></span> &middot; <button class="link" id="sOpen">open in browse</button></div>
+      <div class="under"><span class="addr" id="sAddr"></span> <button class="link" id="sOpen">open</button></div>
     </div>
   </section>
 
   <section role="tabpanel" id="p-browse" aria-labelledby="t-browse" hidden>
-    <p>Address (hexagon:wall:shelf:volume:page):</p>
-    <input type="text" id="addrIn" placeholder="paste an address" autocomplete="off" spellcheck="false">
-    <p>
-      <button class="btn" id="goAddr">go</button>
-      &nbsp; <button class="link" id="prev">previous page</button> |
-      <button class="link" id="next">next page</button> |
-      <button class="link" id="rand">random page</button>
+    <input type="text" id="addrIn" placeholder="hexagon:wall:shelf:volume:page" autocomplete="off" spellcheck="false">
+    <p class="controls">
+      <button class="link" id="goAddr">go</button>
+      <button class="link" id="prev">prev</button>
+      <button class="link" id="next">next</button>
+      <button class="link" id="rand">random</button>
     </p>
-    <p class="grey" id="bNote" hidden></p>
+    <p class="grey small" id="bNote" hidden></p>
     <div class="pagewrap">
       <pre class="page" id="bPage"></pre>
-      <div class="under"><span class="addr" id="bAddr"></span><br><span class="grey" id="bWords"></span></div>
+      <div class="under"><span class="addr" id="bAddr"></span> <span class="grey" id="bWords"></span></div>
     </div>
   </section>
 
   <hr>
   <footer>
-    <p>Each page is 40 lines of 80 characters from a 29-symbol alphabet (a&ndash;z, space, comma, full stop), so there are 29<sup>3200</sup> &asymp; 4.7 &times; 10<sup>4679</sup> pages. Nothing is stored. An address is turned into its page, and a page back into its address, by a reversible shuffle (an affine map mod 29<sup>3200</sup>, a digit reversal, and a second affine map). 4 walls, 5 shelves per wall, 32 volumes per shelf, 410 pages per volume, as in the story.</p>
-    <p>Source: <a href="https://github.com/navthings/babel">github.com/navthings/babel</a>. Last updated 10 October 2026.</p>
+    <p>3200 characters a page, 29 symbols, so 29<sup>3200</sup> pages. none of them are stored, an address is just the page run through a reversible shuffle. idea from <a href="https://libraryofbabel.info" target="_blank" rel="noopener">borges and jonathan basile</a>. <a href="https://github.com/navthings/babel">source</a>.</p>
   </footer>
 </div>
 
@@ -280,7 +281,7 @@ function revealPage(el, text, spans) {
 }
 function renderAddr(el, a) {
   const short = a.hex.length > 16 ? a.hex.slice(0, 6) + "…" + a.hex.slice(-6) : a.hex;
-  el.textContent = `hexagon ${short}, wall ${a.wall}, shelf ${a.shelf}, volume ${a.vol}, page ${a.page} `;
+  el.textContent = `${short}:${a.wall}:${a.shelf}:${a.vol}:${a.page} `;
   const b = document.createElement("button"); b.className = "link"; b.textContent = "copy";
   b.onclick = () => navigator.clipboard.writeText(addrString(a)).then(
     () => { b.textContent = "copied"; setTimeout(() => b.textContent = "copy", 1500); },
@@ -313,7 +314,7 @@ function openNumber(n, spans) {
   renderAddr($("bAddr"), a);
   $("addrIn").value = addrString(a);
   const r = bestRun(text);
-  $("bWords").textContent = `${wordCount(text)} real words on this page; longest run ${r.len} characters.`;
+  $("bWords").textContent = `${wordCount(text)} words`;
   $("bNote").hidden = true;
 }
 function openText(text, spans) { show("browse"); openNumber(numberOf(digitsOf(text)), spans); }
@@ -324,12 +325,12 @@ function goAddr() {
   const raw = $("addrIn").value.trim().toLowerCase().replace(/\s+/g, "");
   const p = raw.split(":");
   const bad = msg => { $("bNote").textContent = msg; $("bNote").hidden = false; };
-  if (p.length !== 5) return bad("An address has five parts: hexagon:wall:shelf:volume:page.");
+  if (p.length !== 5) return bad("needs five parts, hexagon:wall:shelf:volume:page");
   const [hex, w, s, v, pg] = [p[0], +p[1], +p[2], +p[3], +p[4]];
-  if (!(w >= 1 && w <= 4 && s >= 1 && s <= 5 && v >= 1 && v <= 32 && pg >= 1 && pg <= 410)) return bad("Walls go 1 to 4, shelves 1 to 5, volumes 1 to 32, pages 1 to 410.");
+  if (!(w >= 1 && w <= 4 && s >= 1 && s <= 5 && v >= 1 && v <= 32 && pg >= 1 && pg <= 410)) return bad("wall 1-4, shelf 1-5, volume 1-32, page 1-410");
   const n = numberFromAddress({ hex, wall: w, shelf: s, vol: v, page: pg });
-  if (n == null) return bad("A hexagon name can only use 0 to 9 and a to z.");
-  if (n < 0n) return bad("That hexagon is past the end of the library.");
+  if (n == null) return bad("hexagon is 0-9 and a-z only");
+  if (n < 0n) return bad("past the end of the library");
   openNumber(n);
 }
 $("goAddr").onclick = goAddr;
@@ -343,7 +344,7 @@ $("mNoise").onclick = () => setMode("noise");
 function clean(s) { return s.toLowerCase().replace(/[\r\n\t]+/g, " ").replace(/[^a-z ,.]/g, "").slice(0, N); }
 function find() {
   const q = clean($("q").value);
-  if (!q) { $("qNote").textContent = "Type something first."; return; }
+  if (!q) { $("qNote").textContent = "type something first"; return; }
   const d = new Uint8Array(N);
   if (mode === "alone") d.fill(26);
   else { crypto.getRandomValues(d); for (let i = 0; i < N; i++) d[i] %= BASE; }
@@ -354,9 +355,19 @@ function find() {
   $("sWrap").hidden = false;
   revealPage($("sPage"), textOf(d), [lastFound.span]);
   renderAddr($("sAddr"), a);
-  $("qNote").textContent = q.length < $("q").value.length ? `Searched for "${q.length > 40 ? q.slice(0, 40) + "…" : q}" (some characters were dropped).` : "Found. Press find it again for another copy somewhere else.";
+  $("qNote").textContent = q.length < $("q").value.length ? "dropped anything that isn't a-z, space, comma or full stop" : "press again for another copy";
 }
 $("find").onclick = find;
+// basile's search is a POST form; inside the claude viewer forms can't leave the page, so copy and link out instead
+$("basile").onclick = () => {
+  const q = clean($("q").value);
+  if (!q) { $("qNote").textContent = "type something first"; return; }
+  const sandboxed = /claude\.(ai|site)|claudeusercontent/.test(location.hostname);
+  if (!sandboxed) { $("basileFind").value = q; $("basileForm").submit(); return; }
+  navigator.clipboard.writeText(q).then(
+    () => { $("qNote").innerHTML = 'copied, paste it into <a href="https://libraryofbabel.info/search.html" target="_blank" rel="noopener">libraryofbabel.info/search</a>'; },
+    () => { $("qNote").innerHTML = 'paste your text into <a href="https://libraryofbabel.info/search.html" target="_blank" rel="noopener">libraryofbabel.info/search</a>'; });
+};
 $("q").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); find(); } });
 $("sOpen").onclick = () => { if (lastFound) { show("browse"); openNumber(lastFound.n, [lastFound.span]); } };
 
@@ -445,7 +456,7 @@ function spawn() {
   w.postMessage({ type: "init", words: WORDS, seed: seed[0] });
   w.postMessage({ type: "thr", v: best ? best.len : 0 });
   w.onmessage = onTick;
-  w.onerror = e => { toast("A mining thread crashed: " + (e.message || "unknown error")); };
+  w.onerror = e => { toast("a thread crashed: " + (e.message || "unknown error")); };
   return w;
 }
 function setThreads(n) {
@@ -492,17 +503,17 @@ function resolveText(el, text) {
   anims.set(el, requestAnimationFrame(tick));
 }
 function showBest(animate) {
-  if (!best) { $("bestText").textContent = "nothing yet"; $("bestNote").textContent = "Press start. The first real word usually turns up within a second."; return; }
+  if (!best) { $("bestText").textContent = "nothing yet"; $("bestNote").textContent = ""; return; }
   if (animate) resolveText($("bestText"), best.run); else { $("bestText").textContent = best.run; $("bestText").classList.remove("none"); }
-  $("bestNote").textContent = `${best.len} characters, found after ${best.at.toLocaleString()} pages. `;
-  const o = document.createElement("button"); o.className = "link"; o.textContent = "see the page";
+  $("bestNote").textContent = `(${best.len} chars, after ${best.at.toLocaleString()} pages) `;
+  const o = document.createElement("button"); o.className = "link"; o.textContent = "open";
   o.onclick = () => openText(best.page, [{ start: best.start, len: best.len }]);
   $("bestNote").append(o);
 }
 const fmt = n => n >= 1e9 ? (n / 1e9).toFixed(2) + "b" : n >= 1e6 ? (n / 1e6).toFixed(2) + "m" : n >= 1e4 ? (n / 1e3).toFixed(1) + "k" : Math.round(n).toLocaleString();
 function table(rows, who) {
   const t = document.createElement("table");
-  t.innerHTML = `<thead><tr><th>chars</th><th>text</th><th class="r">${who ? "found by" : "pages read"}</th></tr></thead>`;
+  t.innerHTML = `<thead><tr><th>chars</th><th>text</th><th class="r">${who ? "who" : "after"}</th></tr></thead>`;
   const tb = document.createElement("tbody");
   for (const r of rows) {
     const tr = document.createElement("tr");
@@ -518,9 +529,8 @@ function table(rows, who) {
 function renderRecords() {
   const box = $("mine"); box.innerHTML = "";
   const top = records.slice().sort((a, b) => b.len - a.len).slice(0, 8);
-  if (!top.length) { box.innerHTML = "<p>None yet.</p>"; return; }
+  if (!top.length) { box.innerHTML = ""; return; }
   box.append(table(top));
-  const p = document.createElement("p"); p.className = "grey"; p.style.fontSize = "14px"; p.textContent = "Click a record to open its page."; box.append(p);
 }
 function drawChart() {
   const Wd = 720, Hd = 72, padB = 14;
@@ -541,12 +551,12 @@ function drawChart() {
 $("go").onclick = () => {
   mining = !mining;
   $("go").textContent = mining ? "stop" : "start";
-  $("liveMeta").textContent = mining ? "Best page of the last batch; its longest run is in bold." : "Paused.";
+  $("liveMeta").textContent = mining ? "best page from the last batch" : "paused";
   if (mining) { startedAt = performance.now(); setThreads(threads); for (const w of workers) w.postMessage({ type: "start" }); }
   else { for (const w of workers) w.postMessage({ type: "stop" }); stats.ms += performance.now() - startedAt; store.set("stats", stats); rateWin = []; }
 };
 $("reset").onclick = () => {
-  if ($("reset").dataset.armed !== "1") { $("reset").dataset.armed = "1"; $("reset").textContent = "click again to clear"; setTimeout(() => { $("reset").dataset.armed = ""; $("reset").textContent = "reset"; }, 2500); return; }
+  if ($("reset").dataset.armed !== "1") { $("reset").dataset.armed = "1"; $("reset").textContent = "sure?"; setTimeout(() => { $("reset").dataset.armed = ""; $("reset").textContent = "reset"; }, 2500); return; }
   $("reset").dataset.armed = ""; $("reset").textContent = "reset";
   records = []; best = null; stats = { pages: 0, words: 0, ms: 0 };
   store.set("records", records); store.set("stats", stats);
@@ -561,7 +571,7 @@ function updateStats() {
   const rate = rateWin.reduce((a, r) => a + r[1], 0) / span * 1000;
   const sec = Math.floor((stats.ms + (mining ? now - startedAt : 0)) / 1000);
   const time = sec >= 3600 ? `${Math.floor(sec / 3600)}h ${Math.floor(sec / 60) % 60}m` : sec >= 60 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${sec}s`;
-  $("statline").innerHTML = `<b>${stats.pages.toLocaleString()}</b> pages read in ${time}` + (mining ? ` (about ${fmt(rate)} per second)` : "") + `. ${stats.words.toLocaleString()} real words seen along the way.`;
+  $("statline").textContent = stats.pages ? `${stats.pages.toLocaleString()} pages, ${time}` + (mining ? `, ${fmt(rate)}/s` : "") : "";
 }
 let lastLive = 0, lastSave = 0, lastChart = 0;
 function frame(now) {
@@ -594,9 +604,9 @@ async function initGlobal() {
     let names = {};
     try { if (userApi && globalRows.length) names = await userApi.profiles(globalRows.map(r => r.id)); } catch {}
     const box = $("global"); box.innerHTML = "";
-    if (!globalRows.length) { box.innerHTML = "<p>Nothing shared yet. Any find of 8 characters or more is posted here.</p>"; return; }
+    if (!globalRows.length) { box.innerHTML = '<p class="grey small">nothing yet, finds of 8+ chars go here</p>'; return; }
     box.append(table(globalRows, r => r.id === me ? "you" : (names[r.id] && names[r.id].name) || "someone"));
-  }, err => { $("global").innerHTML = `<p>Shared records aren\'t available right now (${err.code}).</p>`; });
+  }, err => { $("global").innerHTML = `<p class="grey small">unavailable (${err.code})</p>`; });
   pushGlobal();
 }
 async function pushGlobal() {

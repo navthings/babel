@@ -1,5 +1,7 @@
 # babel
 
+in every page that could ever be written, find gold.
+
 my own version of the library of babel, plus a miner that digs through it looking for real english.
 
 live: https://navthings.github.io/babel
@@ -18,7 +20,7 @@ the shuffle is an affine map mod 29^3200, then reversing the digits, then anothe
 
 **mine**: web workers read random pages and keep the longest unbroken run of real words (40k common words from SCOWL). records so far land around 10 to 20 characters, the odds fall off a cliff after that. about 60k pages a second per thread on a laptop.
 
-**search**: type anything, get its exact page and address. "alone on the page" pads it with spaces, "among noise" hides it in random letters.
+**search**: type anything, get its exact page and address. "alone" pads it with spaces, "in noise" hides it in random letters. theres also a button that sends it to basile's search so you can see where it lives in the original.
 
 **browse**: paste an address, step to the next or previous page, or jump to a random one.
 
