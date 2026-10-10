@@ -1,0 +1,620 @@
+<title>Babel Miner</title>
+<style>
+/* old academic homepage: default serif, blue links, hr between parts, deliberately light only */
+:root {
+  --bg: #ffffff;
+  --ink: #000000;
+  --link: #0000ee;
+  --visited: #551a8b;
+  --grey: #666666;
+  --noise: #a8a8a8;
+  --rule: #999999;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 "Times New Roman", Times, serif; }
+.wrap { max-width: 760px; padding: 16px 20px 48px; }
+h1 { font-size: 2em; margin: .4em 0 .2em; }
+h2 { font-size: 1.2em; margin: 1.2em 0 .4em; }
+p { margin: .6em 0; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 1em 0; }
+a, .link { color: var(--link); text-decoration: underline; cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
+a:visited { color: var(--visited); }
+.link:focus-visible, a:focus-visible { outline: 1px dotted var(--ink); outline-offset: 1px; }
+.link.on, nav .link[aria-selected="true"] { color: var(--ink); text-decoration: none; font-weight: bold; cursor: default; }
+.grey { color: var(--grey); }
+tt, code, .mono { font-family: "Courier New", Courier, monospace; }
+.found { font-family: "Courier New", Courier, monospace; font-weight: bold; font-size: 1.15em; overflow-wrap: anywhere; }
+.pagewrap { container-type: inline-size; margin: .8em 0; }
+.page { margin: 0; font-family: "Courier New", Courier, monospace; font-size: min(12px, calc(100cqi / 48.2)); line-height: 1.35; color: var(--noise); white-space: pre; overflow: hidden; border: 1px solid var(--rule); padding: 6px; }
+.page b, .page mark { background: none; color: var(--ink); font-weight: bold; }
+.under { font-size: 14px; margin-top: 4px; overflow-wrap: anywhere; }
+.chart { width: 100%; height: 70px; display: block; overflow: visible; border-left: 1px solid var(--ink); }
+.chart .ax { stroke: var(--ink); }
+.chart .ln { fill: none; stroke: var(--ink); stroke-width: 1; }
+.chart text { fill: var(--ink); font: 11px "Times New Roman", Times, serif; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 2px 10px 2px 0; vertical-align: top; }
+th { border-bottom: 1px solid var(--ink); font-weight: bold; }
+td.t { font-family: "Courier New", Courier, monospace; overflow-wrap: anywhere; }
+td.r, th.r { text-align: right; padding-right: 0; white-space: nowrap; }
+textarea, input[type=text] { width: 100%; font: 14px "Courier New", Courier, monospace; color: var(--ink); background: #fff; border: 1px solid #767676; padding: 4px; }
+button.btn { font: 14px system-ui, sans-serif; padding: 1px 8px; }
+.addr { font-family: "Courier New", Courier, monospace; font-size: 13px; }
+footer { font-size: 14px; color: var(--grey); }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <h1>Babel</h1>
+  <p>Every page of text that could ever be written, each with an address. Built after Borges' <i>The Library of Babel</i> (1941) and Jonathan Basile's <a href="https://libraryofbabel.info" target="_blank" rel="noopener">libraryofbabel.info</a>.</p>
+  <nav role="tablist" id="tabs">
+    [ <button class="link" role="tab" id="t-mine" aria-selected="true" aria-controls="p-mine">mine</button> |
+    <button class="link" role="tab" id="t-search" aria-selected="false" aria-controls="p-search">search</button> |
+    <button class="link" role="tab" id="t-browse" aria-selected="false" aria-controls="p-browse">browse</button> ]
+  </nav>
+  <hr>
+
+  <section role="tabpanel" id="p-mine" aria-labelledby="t-mine">
+    <p>The miner reads random pages and keeps the longest unbroken run of real English words it finds (dictionary of 40,465 common words). No shortcuts, just luck and pages per second.</p>
+    <p>Longest so far: <span class="found" id="bestText">nothing yet</span><br><span class="grey" id="bestNote">Press start. The first real word usually turns up within a second.</span></p>
+    <p>
+      <button class="btn" id="go">start</button>
+      <button class="btn" id="reset">reset</button>
+      &nbsp; threads: <b id="thr">2</b> (<button class="link" id="thrDown">less</button>, <button class="link" id="thrUp">more</button>)
+    </p>
+    <p id="statline">0 pages read.</p>
+    <div class="pagewrap">
+      <pre class="page" id="livePage"></pre>
+      <div class="under grey"><span id="liveMeta">A random page.</span> <span id="liveRun"></span></div>
+    </div>
+    <h2>Record over time</h2>
+    <svg class="chart" id="chart" viewBox="0 0 720 70" preserveAspectRatio="none" role="img" aria-label="record length against pages read"></svg>
+    <p class="grey" style="font-size:14px">Longest run (characters) against pages read, log scale.</p>
+    <h2>Your records</h2>
+    <div id="mine"></div>
+    <div id="globalBox" hidden>
+      <h2>Everyone's best</h2>
+      <div id="global"></div>
+    </div>
+  </section>
+
+  <section role="tabpanel" id="p-search" aria-labelledby="t-search" hidden>
+    <p>Type anything. It is already written on some page; this works out which one.</p>
+    <textarea id="q" rows="3" maxlength="3200" placeholder="type something">hello from the library</textarea>
+    <p>
+      <button class="btn" id="find">find it</button>
+      &nbsp; surroundings:
+      <button class="link on" id="mAlone" aria-pressed="true">alone on the page</button> |
+      <button class="link" id="mNoise" aria-pressed="false">among noise</button>
+    </p>
+    <p class="grey" id="qNote">Letters, spaces, commas and full stops only. Anything else is dropped.</p>
+    <div class="pagewrap" id="sWrap" hidden>
+      <pre class="page" id="sPage"></pre>
+      <div class="under"><span class="addr" id="sAddr"></span> &middot; <button class="link" id="sOpen">open in browse</button></div>
+    </div>
+  </section>
+
+  <section role="tabpanel" id="p-browse" aria-labelledby="t-browse" hidden>
+    <p>Address (hexagon:wall:shelf:volume:page):</p>
+    <input type="text" id="addrIn" placeholder="paste an address" autocomplete="off" spellcheck="false">
+    <p>
+      <button class="btn" id="goAddr">go</button>
+      &nbsp; <button class="link" id="prev">previous page</button> |
+      <button class="link" id="next">next page</button> |
+      <button class="link" id="rand">random page</button>
+    </p>
+    <p class="grey" id="bNote" hidden></p>
+    <div class="pagewrap">
+      <pre class="page" id="bPage"></pre>
+      <div class="under"><span class="addr" id="bAddr"></span><br><span class="grey" id="bWords"></span></div>
+    </div>
+  </section>
+
+  <hr>
+  <footer>
+    <p>Each page is 40 lines of 80 characters from a 29-symbol alphabet (a&ndash;z, space, comma, full stop), so there are 29<sup>3200</sup> &asymp; 4.7 &times; 10<sup>4679</sup> pages. Nothing is stored. An address is turned into its page, and a page back into its address, by a reversible shuffle (an affine map mod 29<sup>3200</sup>, a digit reversal, and a second affine map). 4 walls, 5 shelves per wall, 32 volumes per shelf, 410 pages per volume, as in the story.</p>
+    <p>Source: <a href="https://github.com/navthings/babel">github.com/navthings/babel</a>. Last updated 10 October 2026.</p>
+  </footer>
+</div>
+
+<script type="text/plain" id="words">__WORDS__</script>
+<script>
+const W = 80, H = 40, N = W * H, BASE = 29;
+const ALPHA = "abcdefghijklmnopqrstuvwxyz ,.";
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("babel:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("babel:" + k, JSON.stringify(v)); } catch {} },
+};
+
+// the library: page number <-> page text, via affine map, digit reversal, affine map (all mod 29^3200)
+const B = BigInt(BASE), M = B ** BigInt(N);
+const CH = 9, CHB = B ** BigInt(CH), CHN = BASE ** CH;
+function digitsToBig(d) {
+  let acc = 0n;
+  for (let i = 0; i < N; i += CH) {
+    let c = 0;
+    for (let j = i; j < i + CH && j < N; j++) c = c * BASE + d[j];
+    const w = Math.min(CH, N - i);
+    acc = acc * (w === CH ? CHB : B ** BigInt(w)) + BigInt(c);
+  }
+  return acc;
+}
+function bigToDigits(x) {
+  const d = new Uint8Array(N);
+  const rem = N % CH;
+  let i = N;
+  while (i > 0) {
+    const w = i === rem ? rem : CH;
+    const div = w === CH ? CHB : B ** BigInt(w);
+    let c = Number(x % div); x /= div;
+    for (let j = i - 1; j >= i - w; j--) { d[j] = c % BASE; c = Math.floor(c / BASE); }
+    i -= w;
+  }
+  return d;
+}
+function seeded(seed) {
+  return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function constant(rng, odd) {
+  const d = new Uint8Array(N);
+  for (let i = 0; i < N; i++) d[i] = Math.floor(rng() * BASE);
+  if (odd && d[N - 1] === 0) d[N - 1] = 7;
+  return digitsToBig(d);
+}
+function inverse(a) {
+  // Hensel lifting: inverse mod 29, then double the precision until it covers 29^3200
+  let x = 1n;
+  const a29 = Number(a % B);
+  for (let k = 1; k < BASE; k++) if ((a29 * k) % BASE === 1) { x = BigInt(k); break; }
+  for (let p = 1; p < N * 2; p *= 2) x = ((x * (2n - a * x)) % M + M) % M;
+  return x;
+}
+const rngC = seeded(0xBABE1);
+const A1 = constant(rngC, true), C1 = constant(rngC), A2 = constant(rngC, true), C2 = constant(rngC);
+const IA1 = inverse(A1), IA2 = inverse(A2);
+const rev = d => { const r = new Uint8Array(N); for (let i = 0; i < N; i++) r[i] = d[N - 1 - i]; return r; };
+function pageOf(n) {
+  const x = (A1 * n + C1) % M;
+  const y = digitsToBig(rev(bigToDigits(x)));
+  return bigToDigits((A2 * y + C2) % M);
+}
+function numberOf(d) {
+  const y = (((digitsToBig(d) - C2) % M + M) * IA2) % M;
+  const x = digitsToBig(rev(bigToDigits(y)));
+  return (((x - C1) % M + M) * IA1) % M;
+}
+const SHAPE = [4n, 5n, 32n, 410n];
+function addressOf(n) {
+  const page = n % 410n; n /= 410n;
+  const vol = n % 32n; n /= 32n;
+  const shelf = n % 5n; n /= 5n;
+  const wall = n % 4n; n /= 4n;
+  return { hex: n.toString(36), wall: +wall.toString() + 1, shelf: +shelf.toString() + 1, vol: +vol.toString() + 1, page: +page.toString() + 1 };
+}
+function parseHex(s) {
+  let acc = 0n;
+  for (let i = 0; i < s.length; i += 10) {
+    const part = s.slice(i, i + 10), v = parseInt(part, 36);
+    if (!/^[0-9a-z]+$/.test(part) || Number.isNaN(v)) return null;
+    acc = acc * 36n ** BigInt(part.length) + BigInt(v);
+  }
+  return acc;
+}
+function numberFromAddress(a) {
+  const h = parseHex(a.hex);
+  if (h == null) return null;
+  const n = (((h * 4n + BigInt(a.wall - 1)) * 5n + BigInt(a.shelf - 1)) * 32n + BigInt(a.vol - 1)) * 410n + BigInt(a.page - 1);
+  return n < M ? n : -1n;
+}
+const addrString = a => `${a.hex}:${a.wall}:${a.shelf}:${a.vol}:${a.page}`;
+const textOf = d => { let s = ""; for (let i = 0; i < d.length; i++) s += ALPHA[d[i]]; return s; };
+const digitsOf = s => { const d = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) d[i] = ALPHA.indexOf(s[i]); return d; };
+
+// dictionary
+const WORDS = $("words").textContent.trim().split(" ");
+const WORDSET = new Set(WORDS);
+
+// longest run of space-separated dictionary words (each may end in , or .)
+function bestRun(text) {
+  let best = { start: 0, len: 0, words: 0 }, runStart = -1, runWords = 0, i = 0;
+  const L = text.length;
+  while (i <= L) {
+    let j = text.indexOf(" ", i); if (j < 0) j = L;
+    const seg = text.slice(i, j);
+    const core = /[,.]$/.test(seg) ? seg.slice(0, -1) : seg;
+    if (core && /^[a-z]+$/.test(core) && WORDSET.has(core)) {
+      if (runStart < 0) { runStart = i; runWords = 0; }
+      runWords++;
+      if (j - runStart > best.len) best = { start: runStart, len: j - runStart, words: runWords };
+    } else runStart = -1;
+    i = j + 1;
+  }
+  return best;
+}
+function wordCount(text) { let c = 0; for (const s of text.split(" ")) { const k = s.replace(/[,.]$/, ""); if (k && WORDSET.has(k)) c++; } return c; }
+
+// rendering a page with optional highlighted span(s)
+function pageHTML(text, spans = []) {
+  const marks = new Uint8Array(text.length);
+  for (const s of spans) for (let i = s.start; i < s.start + s.len; i++) marks[i] = s.kind || 1;
+  let out = "", open = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (i && i % W === 0) { if (open) out += open === 1 ? "</mark>" : "</b>"; out += "\n"; if (open) out += open === 1 ? "<mark>" : "<b>"; }
+    if (marks[i] !== open) { if (open) out += open === 1 ? "</mark>" : "</b>"; if (marks[i]) out += marks[i] === 1 ? "<mark>" : "<b>"; open = marks[i]; }
+    out += text[i];
+  }
+  if (open) out += open === 1 ? "</mark>" : "</b>";
+  return out;
+}
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const anims = new WeakMap();
+function revealPage(el, text, spans) {
+  // lines resolve top to bottom out of shuffling noise
+  cancelAnimationFrame(anims.get(el));
+  if (reduced) { el.innerHTML = pageHTML(text, spans); return; }
+  const t0 = performance.now(), dur = 650;
+  const tick = now => {
+    const t = (now - t0) / dur;
+    if (t >= 1) { el.innerHTML = pageHTML(text, spans); return; }
+    let s = "";
+    for (let r = 0; r < H; r++) {
+      const edge = (t * 1.4 - r / H * 0.4) * W;
+      for (let c = 0; c < W; c++) s += c < edge ? text[r * W + c] : ALPHA[(Math.random() * BASE) | 0];
+      if (r < H - 1) s += "\n";
+    }
+    el.textContent = s;
+    anims.set(el, requestAnimationFrame(tick));
+  };
+  anims.set(el, requestAnimationFrame(tick));
+}
+function renderAddr(el, a) {
+  const short = a.hex.length > 16 ? a.hex.slice(0, 6) + "…" + a.hex.slice(-6) : a.hex;
+  el.textContent = `hexagon ${short}, wall ${a.wall}, shelf ${a.shelf}, volume ${a.vol}, page ${a.page} `;
+  const b = document.createElement("button"); b.className = "link"; b.textContent = "copy";
+  b.onclick = () => navigator.clipboard.writeText(addrString(a)).then(
+    () => { b.textContent = "copied"; setTimeout(() => b.textContent = "copy", 1500); },
+    () => { b.textContent = "couldn't copy"; setTimeout(() => b.textContent = "copy", 1500); });
+  el.append(b);
+}
+function toast(s) { $("liveMeta").textContent = s; }
+
+// tabs
+const tabs = ["mine", "search", "browse"];
+function show(name) {
+  for (const t of tabs) { $("t-" + t).setAttribute("aria-selected", t === name); $("p-" + t).hidden = t !== name; }
+  store.set("tab", name);
+  if (name === "browse" && !browseN) openNumber(randomNumber());
+}
+for (const t of tabs) $("t-" + t).onclick = () => show(t);
+$("tabs").addEventListener("keydown", e => {
+  const i = tabs.findIndex(t => $("t-" + t).getAttribute("aria-selected") === "true");
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const n = tabs[(i + (e.key === "ArrowRight" ? 1 : 2)) % 3]; show(n); $("t-" + n).focus(); }
+});
+
+// browse
+let browseN = null;
+function randomNumber() { const d = new Uint8Array(N); crypto.getRandomValues(d); for (let i = 0; i < N; i++) d[i] %= BASE; return numberOf(d); }
+function openNumber(n, spans) {
+  browseN = n;
+  const d = pageOf(n), text = textOf(d), a = addressOf(n);
+  if (!spans) { const r = bestRun(text); spans = r.len ? [r] : []; }
+  revealPage($("bPage"), text, spans);
+  renderAddr($("bAddr"), a);
+  $("addrIn").value = addrString(a);
+  const r = bestRun(text);
+  $("bWords").textContent = `${wordCount(text)} real words on this page; longest run ${r.len} characters.`;
+  $("bNote").hidden = true;
+}
+function openText(text, spans) { show("browse"); openNumber(numberOf(digitsOf(text)), spans); }
+$("prev").onclick = () => browseN != null && openNumber((browseN - 1n + M) % M);
+$("next").onclick = () => browseN != null && openNumber((browseN + 1n) % M);
+$("rand").onclick = () => openNumber(randomNumber());
+function goAddr() {
+  const raw = $("addrIn").value.trim().toLowerCase().replace(/\s+/g, "");
+  const p = raw.split(":");
+  const bad = msg => { $("bNote").textContent = msg; $("bNote").hidden = false; };
+  if (p.length !== 5) return bad("An address has five parts: hexagon:wall:shelf:volume:page.");
+  const [hex, w, s, v, pg] = [p[0], +p[1], +p[2], +p[3], +p[4]];
+  if (!(w >= 1 && w <= 4 && s >= 1 && s <= 5 && v >= 1 && v <= 32 && pg >= 1 && pg <= 410)) return bad("Walls go 1 to 4, shelves 1 to 5, volumes 1 to 32, pages 1 to 410.");
+  const n = numberFromAddress({ hex, wall: w, shelf: s, vol: v, page: pg });
+  if (n == null) return bad("A hexagon name can only use 0 to 9 and a to z.");
+  if (n < 0n) return bad("That hexagon is past the end of the library.");
+  openNumber(n);
+}
+$("goAddr").onclick = goAddr;
+$("addrIn").addEventListener("keydown", e => { if (e.key === "Enter") goAddr(); });
+
+// search
+let mode = "alone", lastFound = null;
+function setMode(m) { mode = m; for (const [id, k] of [["mAlone", "alone"], ["mNoise", "noise"]]) { $(id).setAttribute("aria-pressed", m === k); $(id).classList.toggle("on", m === k); } }
+$("mAlone").onclick = () => setMode("alone");
+$("mNoise").onclick = () => setMode("noise");
+function clean(s) { return s.toLowerCase().replace(/[\r\n\t]+/g, " ").replace(/[^a-z ,.]/g, "").slice(0, N); }
+function find() {
+  const q = clean($("q").value);
+  if (!q) { $("qNote").textContent = "Type something first."; return; }
+  const d = new Uint8Array(N);
+  if (mode === "alone") d.fill(26);
+  else { crypto.getRandomValues(d); for (let i = 0; i < N; i++) d[i] %= BASE; }
+  const at = Math.floor(Math.random() * (N - q.length + 1));
+  for (let i = 0; i < q.length; i++) d[at + i] = ALPHA.indexOf(q[i]);
+  const n = numberOf(d), a = addressOf(n);
+  lastFound = { n, span: { start: at, len: q.length } };
+  $("sWrap").hidden = false;
+  revealPage($("sPage"), textOf(d), [lastFound.span]);
+  renderAddr($("sAddr"), a);
+  $("qNote").textContent = q.length < $("q").value.length ? `Searched for "${q.length > 40 ? q.slice(0, 40) + "…" : q}" (some characters were dropped).` : "Found. Press find it again for another copy somewhere else.";
+}
+$("find").onclick = find;
+$("q").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); find(); } });
+$("sOpen").onclick = () => { if (lastFound) { show("browse"); openNumber(lastFound.n, [lastFound.span]); } };
+
+// mining workers
+const workerSrc = `
+let small, big, maxLen, thr = 0, running = false, s = 1;
+const N = ${N};
+const p = new Uint8Array(N), show = new Uint8Array(N);
+function rnd() { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return s >>> 0; }
+function fill() {
+  let i = 0;
+  while (i < N) {
+    const r = rnd();
+    if (r >= 4163763247) continue;
+    let v = r % 594823321;
+    for (let k = 0; k < 6 && i < N; k++) { p[i++] = v % 29; v = (v / 29) | 0; }
+  }
+}
+function isWord(a, b) {
+  const L = b - a;
+  if (L > maxLen) return false;
+  if (L <= 11) { let k = 0; for (let i = a; i < b; i++) k = k * 27 + p[i] + 1; return small.has(k); }
+  let w = ""; for (let i = a; i < b; i++) w += String.fromCharCode(97 + p[i]);
+  return big.has(w);
+}
+function scan(st) {
+  let best = 0, bs = 0, runStart = -1, i = 0, words = 0;
+  while (i <= N) {
+    let j = i; while (j < N && p[j] !== 26) j++;
+    let e = j; if (e > i && p[e - 1] > 26) e--;
+    let ok = e > i;
+    if (ok) for (let k = i; k < e; k++) if (p[k] > 25) { ok = false; break; }
+    if (ok && isWord(i, e)) {
+      words++;
+      if (runStart < 0) runStart = i;
+      if (j - runStart > best) { best = j - runStart; bs = runStart; }
+    } else runStart = -1;
+    i = j + 1;
+  }
+  st.words += words;
+  return best * 4096 + bs;
+}
+function loop() {
+  if (!running) return;
+  const t0 = performance.now(), st = { words: 0 };
+  let pages = 0, topLen = 0, topStart = 0, topPage = null, showLen = -1, showStart = 0;
+  while (performance.now() - t0 < 80) {
+    for (let k = 0; k < 20; k++) {
+      fill();
+      const r = scan(st), len = (r / 4096) | 0;
+      pages++;
+      if (len > showLen) { showLen = len; showStart = r % 4096; show.set(p); }
+      if (len > thr && len > topLen) { topLen = len; topStart = r % 4096; topPage = p.slice(); }
+    }
+  }
+  const sample = show.slice();
+  const msg = { type: "tick", pages, words: st.words, sample, sampleLen: showLen, sampleStart: showStart };
+  if (topPage) { msg.found = topPage; msg.len = topLen; msg.start = topStart; thr = topLen; }
+  postMessage(msg, topPage ? [sample.buffer, topPage.buffer] : [sample.buffer]);
+  setTimeout(loop, 0);
+}
+onmessage = e => {
+  const m = e.data;
+  if (m.type === "init") {
+    small = new Set(); big = new Set(); maxLen = 0;
+    for (const w of m.words) {
+      maxLen = Math.max(maxLen, w.length);
+      if (w.length <= 11) { let k = 0; for (const c of w) k = k * 27 + c.charCodeAt(0) - 96; small.add(k); } else big.add(w);
+    }
+    s = m.seed >>> 0 || 1; thr = 0;
+  } else if (m.type === "thr") thr = Math.max(thr, m.v);
+  else if (m.type === "start") { if (!running) { running = true; loop(); } }
+  else if (m.type === "stop") running = false;
+};`;
+const workerURL = URL.createObjectURL(new Blob([workerSrc], { type: "text/javascript" }));
+const cores = navigator.hardwareConcurrency || 4;
+let threads = Math.min(store.get("threads", Math.max(1, Math.floor(cores / 2))), cores);
+let workers = [], mining = false, rateWin = [], startedAt = 0;
+let stats = store.get("stats", { pages: 0, words: 0, ms: 0 });
+let records = store.get("records", []);
+let best = records.length ? records[records.length - 1] : null;
+
+function spawn() {
+  const w = new Worker(workerURL);
+  const seed = new Uint32Array(1); crypto.getRandomValues(seed);
+  w.postMessage({ type: "init", words: WORDS, seed: seed[0] });
+  w.postMessage({ type: "thr", v: best ? best.len : 0 });
+  w.onmessage = onTick;
+  w.onerror = e => { toast("A mining thread crashed: " + (e.message || "unknown error")); };
+  return w;
+}
+function setThreads(n) {
+  threads = Math.max(1, Math.min(cores, n));
+  $("thr").textContent = threads; store.set("threads", threads);
+  while (workers.length > threads) workers.pop().terminate();
+  while (workers.length < threads) { const w = spawn(); workers.push(w); if (mining) w.postMessage({ type: "start" }); }
+}
+$("thrUp").onclick = () => setThreads(threads + 1);
+$("thrDown").onclick = () => setThreads(threads - 1);
+
+let liveText = null, liveRun = null, liveDirty = false;
+function onTick(e) {
+  const m = e.data;
+  stats.pages += m.pages; stats.words += m.words;
+  rateWin.push([performance.now(), m.pages]);
+  if (e.target === workers[0]) { liveText = textOf(m.sample); liveRun = m.sampleLen ? { start: m.sampleStart, len: m.sampleLen, kind: 2 } : null; liveDirty = true; }
+  if (m.found && (!best || m.len > best.len)) newRecord(textOf(m.found), m.start, m.len);
+}
+function newRecord(page, start, len) {
+  const run = page.slice(start, start + len);
+  best = { len, start, run, page, at: stats.pages, t: Date.now() };
+  records.push(best);
+  if (records.length > 40) records.splice(1, 1);
+  store.set("records", records);
+  for (const w of workers) w.postMessage({ type: "thr", v: len });
+  showBest(true);
+  renderRecords(true);
+  drawChart();
+  pushGlobal();
+}
+function resolveText(el, text) {
+  cancelAnimationFrame(anims.get(el));
+  el.classList.remove("none");
+  if (reduced) { el.textContent = text; return; }
+  const t0 = performance.now(), dur = 700;
+  const tick = now => {
+    const t = (now - t0) / dur;
+    let out = "";
+    for (let i = 0; i < text.length; i++) out += t * 1.3 > (i + 1) / text.length ? text[i] : ALPHA[(Math.random() * 28) | 0];
+    el.textContent = out;
+    if (t < 1) anims.set(el, requestAnimationFrame(tick)); else el.textContent = text;
+  };
+  anims.set(el, requestAnimationFrame(tick));
+}
+function showBest(animate) {
+  if (!best) { $("bestText").textContent = "nothing yet"; $("bestNote").textContent = "Press start. The first real word usually turns up within a second."; return; }
+  if (animate) resolveText($("bestText"), best.run); else { $("bestText").textContent = best.run; $("bestText").classList.remove("none"); }
+  $("bestNote").textContent = `${best.len} characters, found after ${best.at.toLocaleString()} pages. `;
+  const o = document.createElement("button"); o.className = "link"; o.textContent = "see the page";
+  o.onclick = () => openText(best.page, [{ start: best.start, len: best.len }]);
+  $("bestNote").append(o);
+}
+const fmt = n => n >= 1e9 ? (n / 1e9).toFixed(2) + "b" : n >= 1e6 ? (n / 1e6).toFixed(2) + "m" : n >= 1e4 ? (n / 1e3).toFixed(1) + "k" : Math.round(n).toLocaleString();
+function table(rows, who) {
+  const t = document.createElement("table");
+  t.innerHTML = `<thead><tr><th>chars</th><th>text</th><th class="r">${who ? "found by" : "pages read"}</th></tr></thead>`;
+  const tb = document.createElement("tbody");
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    const a = document.createElement("td"); a.textContent = r.len;
+    const b = document.createElement("td"); b.className = "t";
+    const l = document.createElement("button"); l.className = "link"; l.textContent = r.run; l.onclick = () => openText(r.page, [{ start: r.start, len: r.len }]);
+    b.append(l);
+    const c = document.createElement("td"); c.className = "r"; c.textContent = who ? who(r) : r.at.toLocaleString();
+    tr.append(a, b, c); tb.append(tr);
+  }
+  t.append(tb); return t;
+}
+function renderRecords() {
+  const box = $("mine"); box.innerHTML = "";
+  const top = records.slice().sort((a, b) => b.len - a.len).slice(0, 8);
+  if (!top.length) { box.innerHTML = "<p>None yet.</p>"; return; }
+  box.append(table(top));
+  const p = document.createElement("p"); p.className = "grey"; p.style.fontSize = "14px"; p.textContent = "Click a record to open its page."; box.append(p);
+}
+function drawChart() {
+  const Wd = 720, Hd = 72, padB = 14;
+  const pts = records.map(r => [Math.log10(Math.max(1, r.at)), r.len]);
+  const xmax = Math.max(4, Math.ceil(Math.log10(Math.max(10, stats.pages))));
+  const ymax = Math.max(10, ...pts.map(p => p[1]));
+  const X = v => v / xmax * Wd, Y = v => Hd - padB - v / ymax * (Hd - padB - 4);
+  let g = `<line class="ax" x1="0" x2="${Wd}" y1="${Hd - padB + .5}" y2="${Hd - padB + .5}" vector-effect="non-scaling-stroke"/>`;
+  for (let k = 0; k <= xmax; k++) g += `<text x="${k === xmax ? Wd : X(k)}" y="${Hd}" text-anchor="${k === 0 ? "start" : k === xmax ? "end" : "middle"}">${k === 0 ? "1" : "10" + "⁰¹²³⁴⁵⁶⁷⁸⁹"[k]}</text>`;
+  if (pts.length) {
+    let d = `M0 ${Y(0)}`;
+    for (const [x, y] of pts) d += ` H${X(x)} V${Y(y)}`;
+    d += ` H${X(Math.log10(Math.max(1, stats.pages)))}`;
+    g += `<path class="ln" d="${d}" vector-effect="non-scaling-stroke"/>`;
+  }
+  $("chart").innerHTML = g;
+}
+$("go").onclick = () => {
+  mining = !mining;
+  $("go").textContent = mining ? "stop" : "start";
+  $("liveMeta").textContent = mining ? "Best page of the last batch; its longest run is in bold." : "Paused.";
+  if (mining) { startedAt = performance.now(); setThreads(threads); for (const w of workers) w.postMessage({ type: "start" }); }
+  else { for (const w of workers) w.postMessage({ type: "stop" }); stats.ms += performance.now() - startedAt; store.set("stats", stats); rateWin = []; }
+};
+$("reset").onclick = () => {
+  if ($("reset").dataset.armed !== "1") { $("reset").dataset.armed = "1"; $("reset").textContent = "click again to clear"; setTimeout(() => { $("reset").dataset.armed = ""; $("reset").textContent = "reset"; }, 2500); return; }
+  $("reset").dataset.armed = ""; $("reset").textContent = "reset";
+  records = []; best = null; stats = { pages: 0, words: 0, ms: 0 };
+  store.set("records", records); store.set("stats", stats);
+  for (const w of workers) w.postMessage({ type: "init", words: WORDS, seed: (Math.random() * 2 ** 32) >>> 0 });
+  if (mining) startedAt = performance.now();
+  showBest(false); renderRecords(); drawChart(); updateStats();
+};
+function updateStats() {
+  const now = performance.now();
+  rateWin = rateWin.filter(r => now - r[0] < 1500);
+  const span = rateWin.length ? Math.max(500, now - rateWin[0][0]) : 1;
+  const rate = rateWin.reduce((a, r) => a + r[1], 0) / span * 1000;
+  const sec = Math.floor((stats.ms + (mining ? now - startedAt : 0)) / 1000);
+  const time = sec >= 3600 ? `${Math.floor(sec / 3600)}h ${Math.floor(sec / 60) % 60}m` : sec >= 60 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${sec}s`;
+  $("statline").innerHTML = `<b>${stats.pages.toLocaleString()}</b> pages read in ${time}` + (mining ? ` (about ${fmt(rate)} per second)` : "") + `. ${stats.words.toLocaleString()} real words seen along the way.`;
+}
+let lastLive = 0, lastSave = 0, lastChart = 0;
+function frame(now) {
+  if (liveDirty && now - lastLive > 90) {
+    $("livePage").innerHTML = pageHTML(liveText, liveRun ? [liveRun] : []);
+    $("liveRun").textContent = "";
+    liveDirty = false; lastLive = now;
+  }
+  if (mining) {
+    updateStats();
+    if (now - lastChart > 1000) { drawChart(); lastChart = now; }
+    if (now - lastSave > 5000) { store.set("stats", { ...stats, ms: stats.ms + now - startedAt }); lastSave = now; }
+  }
+  requestAnimationFrame(frame);
+}
+addEventListener("pagehide", () => { if (mining) store.set("stats", { ...stats, ms: stats.ms + performance.now() - startedAt }); });
+
+// shared leaderboard, one best record per person
+let db = null, me = null, userApi = null, pushing = false, pushedLen = 0, globalRows = [];
+async function initGlobal() {
+  if (!window.claude || !claude.use) return;
+  [db, userApi] = await Promise.all([claude.use("db"), claude.use("user")]);
+  if (!db) return;
+  try { me = userApi ? await userApi.id() : null; } catch { me = null; }
+  $("globalBox").hidden = false;
+  db.collection("records").orderBy("len", "desc").limit(10).onSnapshot(async snap => {
+    globalRows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const mine = globalRows.find(r => r.id === me);
+    if (mine) pushedLen = Math.max(pushedLen, mine.len);
+    let names = {};
+    try { if (userApi && globalRows.length) names = await userApi.profiles(globalRows.map(r => r.id)); } catch {}
+    const box = $("global"); box.innerHTML = "";
+    if (!globalRows.length) { box.innerHTML = "<p>Nothing shared yet. Any find of 8 characters or more is posted here.</p>"; return; }
+    box.append(table(globalRows, r => r.id === me ? "you" : (names[r.id] && names[r.id].name) || "someone"));
+  }, err => { $("global").innerHTML = `<p>Shared records aren\'t available right now (${err.code}).</p>`; });
+  pushGlobal();
+}
+async function pushGlobal() {
+  if (!db || !me || pushing || !best || best.len < 8 || best.len <= pushedLen) return;
+  pushing = true;
+  const rec = best;
+  try {
+    await db.collection("records").doc(me).set({ len: rec.len, run: rec.run, start: rec.start, page: rec.page, pages: rec.at, t: rec.t });
+    pushedLen = rec.len;
+  } catch (err) {
+    if (err && err.code === "invalid_argument") me = null;
+    $("bestNote").append(" (couldn't post this to the shared board: " + (err && err.code === "invalid_argument" ? "you can only view it" : err && err.message || "unknown error") + ")");
+  }
+  pushing = false;
+  if (best !== rec) pushGlobal();
+}
+
+// start
+$("thr").textContent = threads;
+showBest(false); renderRecords(); drawChart(); updateStats();
+{
+  const seedText = textOf(pageOf(randomNumber()));
+  $("livePage").innerHTML = pageHTML(seedText, []);
+}
+const startTab = store.get("tab", "mine");
+show(tabs.includes(startTab) ? startTab : "mine");
+requestAnimationFrame(frame);
+initGlobal();
+</script>
