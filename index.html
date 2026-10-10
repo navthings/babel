@@ -84,10 +84,6 @@ footer { font-size: 15px; color: var(--grey); }
     <h2>records</h2>
     <svg class="chart" id="chart" viewBox="0 0 720 70" preserveAspectRatio="none" role="img" aria-label="record length against pages read"></svg>
     <div id="mine"></div>
-    <div id="globalBox" hidden>
-      <h2>everyone</h2>
-      <div id="global"></div>
-    </div>
   </section>
 
   <section role="tabpanel" id="p-search" aria-labelledby="t-search" hidden>
@@ -358,15 +354,10 @@ function find() {
   $("qNote").textContent = q.length < $("q").value.length ? "dropped anything that isn't a-z, space, comma or full stop" : "press again for another copy";
 }
 $("find").onclick = find;
-// basile's search is a POST form; inside the claude viewer forms can't leave the page, so copy and link out instead
 $("basile").onclick = () => {
   const q = clean($("q").value);
   if (!q) { $("qNote").textContent = "type something first"; return; }
-  const sandboxed = /claude\.(ai|site)|claudeusercontent/.test(location.hostname);
-  if (!sandboxed) { $("basileFind").value = q; $("basileForm").submit(); return; }
-  navigator.clipboard.writeText(q).then(
-    () => { $("qNote").innerHTML = 'copied, paste it into <a href="https://libraryofbabel.info/search.html" target="_blank" rel="noopener">libraryofbabel.info/search</a>'; },
-    () => { $("qNote").innerHTML = 'paste your text into <a href="https://libraryofbabel.info/search.html" target="_blank" rel="noopener">libraryofbabel.info/search</a>'; });
+  $("basileFind").value = q; $("basileForm").submit();
 };
 $("q").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); find(); } });
 $("sOpen").onclick = () => { if (lastFound) { show("browse"); openNumber(lastFound.n, [lastFound.span]); } };
@@ -486,7 +477,6 @@ function newRecord(page, start, len) {
   showBest(true);
   renderRecords(true);
   drawChart();
-  pushGlobal();
 }
 function resolveText(el, text) {
   cancelAnimationFrame(anims.get(el));
@@ -511,9 +501,9 @@ function showBest(animate) {
   $("bestNote").append(o);
 }
 const fmt = n => n >= 1e9 ? (n / 1e9).toFixed(2) + "b" : n >= 1e6 ? (n / 1e6).toFixed(2) + "m" : n >= 1e4 ? (n / 1e3).toFixed(1) + "k" : Math.round(n).toLocaleString();
-function table(rows, who) {
+function table(rows) {
   const t = document.createElement("table");
-  t.innerHTML = `<thead><tr><th>chars</th><th>text</th><th class="r">${who ? "who" : "after"}</th></tr></thead>`;
+  t.innerHTML = `<thead><tr><th>chars</th><th>text</th><th class="r">after</th></tr></thead>`;
   const tb = document.createElement("tbody");
   for (const r of rows) {
     const tr = document.createElement("tr");
@@ -521,7 +511,7 @@ function table(rows, who) {
     const b = document.createElement("td"); b.className = "t";
     const l = document.createElement("button"); l.className = "link"; l.textContent = r.run; l.onclick = () => openText(r.page, [{ start: r.start, len: r.len }]);
     b.append(l);
-    const c = document.createElement("td"); c.className = "r"; c.textContent = who ? who(r) : r.at.toLocaleString();
+    const c = document.createElement("td"); c.className = "r"; c.textContent = r.at.toLocaleString();
     tr.append(a, b, c); tb.append(tr);
   }
   t.append(tb); return t;
@@ -589,41 +579,6 @@ function frame(now) {
 }
 addEventListener("pagehide", () => { if (mining) store.set("stats", { ...stats, ms: stats.ms + performance.now() - startedAt }); });
 
-// shared leaderboard, one best record per person
-let db = null, me = null, userApi = null, pushing = false, pushedLen = 0, globalRows = [];
-async function initGlobal() {
-  if (!window.claude || !claude.use) return;
-  [db, userApi] = await Promise.all([claude.use("db"), claude.use("user")]);
-  if (!db) return;
-  try { me = userApi ? await userApi.id() : null; } catch { me = null; }
-  $("globalBox").hidden = false;
-  db.collection("records").orderBy("len", "desc").limit(10).onSnapshot(async snap => {
-    globalRows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const mine = globalRows.find(r => r.id === me);
-    if (mine) pushedLen = Math.max(pushedLen, mine.len);
-    let names = {};
-    try { if (userApi && globalRows.length) names = await userApi.profiles(globalRows.map(r => r.id)); } catch {}
-    const box = $("global"); box.innerHTML = "";
-    if (!globalRows.length) { box.innerHTML = '<p class="grey small">nothing yet, finds of 8+ chars go here</p>'; return; }
-    box.append(table(globalRows, r => r.id === me ? "you" : (names[r.id] && names[r.id].name) || "someone"));
-  }, err => { $("global").innerHTML = `<p class="grey small">unavailable (${err.code})</p>`; });
-  pushGlobal();
-}
-async function pushGlobal() {
-  if (!db || !me || pushing || !best || best.len < 8 || best.len <= pushedLen) return;
-  pushing = true;
-  const rec = best;
-  try {
-    await db.collection("records").doc(me).set({ len: rec.len, run: rec.run, start: rec.start, page: rec.page, pages: rec.at, t: rec.t });
-    pushedLen = rec.len;
-  } catch (err) {
-    if (err && err.code === "invalid_argument") me = null;
-    $("bestNote").append(" (couldn't post this to the shared board: " + (err && err.code === "invalid_argument" ? "you can only view it" : err && err.message || "unknown error") + ")");
-  }
-  pushing = false;
-  if (best !== rec) pushGlobal();
-}
-
 // start
 $("thr").textContent = threads;
 showBest(false); renderRecords(); drawChart(); updateStats();
@@ -634,7 +589,6 @@ showBest(false); renderRecords(); drawChart(); updateStats();
 const startTab = store.get("tab", "mine");
 show(tabs.includes(startTab) ? startTab : "mine");
 requestAnimationFrame(frame);
-initGlobal();
 </script>
 </body>
 </html>
